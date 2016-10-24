@@ -1,0 +1,17 @@
+#include "kinematic_estimators.h"
+
+void Condition_latest_data(QuadStateVariable * data,int algo){
+	//checking if Fd,ba,bg,rmis,qmis make sense
+	if(data->Fd){	}
+
+//remove outliers for queues
+	//algo 1: tested on matlab
+	if(algo==1){
+    //only the queues for the measurements
+    //assumpiton: the last value in the queue is the latest raw data. This will be replaced by a outlier/averager filtered data. The raw data queue
+	// is not altered
+	//first compute the standard deviation of the current data set
+
+
+	}
+}

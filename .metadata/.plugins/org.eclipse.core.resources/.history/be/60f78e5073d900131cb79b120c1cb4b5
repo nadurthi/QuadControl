@@ -1,0 +1,26 @@
+//============================================================================
+// Name        : UDP_comm_test.cpp
+// Author      : Nagnanamus
+// Version     :
+// Copyright   : Do what ever you want!!! I am not responsible
+// Description : Hello World in C++, Ansi-style
+//============================================================================
+
+#include <iostream>
+using namespace std;
+#include "udpPort.h"
+int main() {
+	udpPort SendUDP;
+
+	SendUDP.OpenPort_write("192.168.1.142",1234);
+char txbuffer[10]="Send Data";
+
+	while(1){
+	SendUDP.write(txbuffer,9);
+
+	usleep(1000000);
+
+	}
+
+	return 0;
+}

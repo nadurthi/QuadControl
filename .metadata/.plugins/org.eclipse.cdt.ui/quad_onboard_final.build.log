@@ -1,0 +1,33 @@
+
+**** Build of configuration Debug for project quad_onboard_final ****
+
+make all 
+Building file: ../src/quad_onboard_final.cpp
+Invoking: GCC C++ Compiler
+arm-linux-gnueabi-g++ -I/usr/arm-linux-gnueabi/include/c++/4.6.3 -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"src/quad_onboard_final.d" -MT"src/quad_onboard_final.d" -o"src/quad_onboard_final.o" "../src/quad_onboard_final.cpp"
+In file included from /usr/arm-linux-gnueabi/include/c++/4.6.3/thread:35:0,
+                 from ../src/quad_onboard_final.cpp:26:
+/usr/arm-linux-gnueabi/include/c++/4.6.3/bits/c++0x_warning.h:32:2: error: #error This file requires compiler and library support for the upcoming ISO C++ standard, C++0x. This support is currently experimental, and must be enabled with the -std=c++0x or -std=gnu++0x compiler options.
+In file included from ../src/quad_onboard_final.cpp:27:0:
+../src/timeSeqFilters.h:3:0: error: unterminated #ifndef
+In file included from ../src/quad_onboard_final.cpp:28:0:
+../src/rots_rates.h:4:0: error: unterminated #ifndef
+In file included from ../src/quad_onboard_final.cpp:27:0:
+../src/timeSeqFilters.h:21:19: error: ISO C++ forbids initialization of member ‘N’ [-fpermissive]
+../src/timeSeqFilters.h:21:19: error: making ‘N’ static [-fpermissive]
+../src/timeSeqFilters.h:21:19: error: ISO C++ forbids in-class initialization of non-const static member ‘N’
+../src/quad_onboard_final.cpp:31:7: error: expected nested-name-specifier before ‘namespace’
+../src/quad_onboard_final.cpp:31:7: error: expected unqualified-id before ‘namespace’
+../src/quad_onboard_final.cpp:31:7: error: expected ‘;’ before ‘namespace’
+../src/quad_onboard_final.cpp:31:7: error: expected unqualified-id before ‘namespace’
+../src/quad_onboard_final.cpp:141:36: error: cannot define member function ‘sensorVicon::MotorControl::write2i2c’ within ‘sensorVicon’
+../src/quad_onboard_final.cpp:263:1: error: expected ‘}’ at end of input
+../src/quad_onboard_final.cpp: In member function ‘int sensorVicon::main(int, char**)’:
+../src/quad_onboard_final.cpp:180:9: warning: unused variable ‘Vel’ [-Wunused-variable]
+../src/quad_onboard_final.cpp:181:10: warning: unused variable ‘namebuf’ [-Wunused-variable]
+../src/quad_onboard_final.cpp:182:15: warning: unused variable ‘f2’ [-Wunused-variable]
+../src/quad_onboard_final.cpp:182:18: warning: unused variable ‘f3’ [-Wunused-variable]
+../src/quad_onboard_final.cpp:182:21: warning: unused variable ‘f4’ [-Wunused-variable]
+../src/quad_onboard_final.cpp: At global scope:
+../src/quad_onboard_final.cpp:263:1: error: expected unqualified-id at end of input
+make: *** [src/quad_onboard_final.o] Error 1

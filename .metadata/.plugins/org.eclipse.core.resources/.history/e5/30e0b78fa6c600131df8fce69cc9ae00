@@ -1,0 +1,117 @@
+#include "kinematic_estimators.h"
+#include<cmath>
+
+
+
+/*
+ * Queue class functions: These functions are written such that they are more useful only for this project
+ */
+void SimpleQueue::AppendQ(double *D){
+	for(int c=0;c<columns;c++){
+		for(int r=0;r<rows;r++){
+			if(r<rows-1){
+				a[r][c]=a[r+1][c]; }
+			else{
+				a[rows-1][c]=D[c];}
+		}
+	}
+
+}
+double * SimpleQueue::MeanQ(double * D, int r1, int r2) {
+	  if(CheckSizeQ(r1,0)+CheckSizeQ(r2,0)<2)
+		  exit(1);
+
+	   int r,c;
+	   for(c=0;c<columns;c++){
+		   D[c]=0;
+		   for(r=r1;r<=r2;r++){
+			   D[c]=D[c]+a[r][c];
+		   }
+		   D[c]=D[c]/(r2-r1+1);
+	   }
+	return D;
+}
+double * SimpleQueue::VarQ(double * D, int r1, int r2){
+	int r,c;
+	double mu[columns];
+	MeanQ(mu,r1, r2);
+	for(c=0;c<columns;c++){
+			   D[c]=0;
+			   for(r=r1;r<=r2;r++){
+				   D[c]=D[c]+pow(a[r][c]-mu[c],2);
+			   }
+			   D[c]=D[c]/(r2-r1+1);
+		   }
+
+
+
+	return D;
+}
+double * SimpleQueue::StdQ(double * D, int r1, int r2){
+	int r,c;
+	double mu[columns];
+	MeanQ(mu,r1, r2);
+	for(c=0;c<columns;c++){
+			   D[c]=0;
+			   for(r=r1;r<=r2;r++){
+				   D[c]=D[c]+pow(a[r][c]-mu[c],2);
+			   }
+			   D[c]=sqrt(D[c]/(r2-r1+1));
+		   }
+
+	return D;
+}
+
+double * SimpleQueue::GetRowQ(int r,double *D){
+	for(int i;i<columns;i++){
+		D[i]=a[r][i];
+	}
+
+	return D;
+}
+
+double * SimpleQueue::GetColQ(int c,double *D){
+	for(int i;i<rows;i++){
+		D[i]=a[i][c];
+	}
+
+	return D;
+}
+
+double * SimpleQueue::GetLastRowQ(double *D){
+	for(int i;i<columns;i++){
+		D[i]=a[rows-1][i];
+	}
+	return D;
+}
+void SimpleQueue::ReplaceRowQ(int r,double *D){
+	for(int c=0;c<columns;c++){
+	a[r][c]=D[c];
+	}
+}
+void SimpleQueue::ReplaceLastRowQ(double *D){
+	for(int c=0;c<columns;c++){
+	a[rows-1][c]=D[c];
+	}
+}
+
+
+
+
+
+
+
+//write all
+void Condition_latest_data_Algo1(QuadStateVariable * data){
+	//checking if received parameter data Fd,ba,bg,rmis,qmis make sense
+	if(data->Fd){	}
+
+//remove outliers for queues
+	//only the queues for the measurements
+    //assumpiton: the last value in the queue is the latest raw data. This will be replaced by a outlier/averager filtered data. The raw data queue
+	// is not altered
+	//first compute the standard deviation of the current data set
+
+
+	}
+

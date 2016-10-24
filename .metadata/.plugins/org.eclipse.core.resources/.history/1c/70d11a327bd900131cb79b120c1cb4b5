@@ -1,0 +1,37 @@
+//============================================================================
+// Name        : UDP_comm_test_recieve.cpp
+// Author      : Nagnanamus
+// Version     :
+// Copyright   : Do what ever you want!!! I am not responsible
+// Description : Hello World in C++, Ansi-style
+//============================================================================
+
+#include <iostream>
+using namespace std;
+#include "udpPort.h"
+#include "SimpleTimer.h"
+
+int main() {
+
+	SimpleTimer TicToc;
+
+	udpPort RecUDP;
+	char address[30]="10.0.0.3";
+	RecUDP.OpenPort_read(address,1234);
+	char rxbuffer[100];
+	rxbuffer[0]='1';
+	while(1){
+
+		if(RecUDP.CheckData()>=0){
+			TicToc.ResetTimer();
+		//cout<<"No. of data bytes = "<<RecUDP.CheckData()<<endl;
+		RecUDP.CheckData()
+		cout<<"Time to check if data = "<<TicToc.GetTime_from_T0sec()<<endl;
+
+	RecUDP.ReadPort(rxbuffer,100);
+	cout<<rxbuffer<<endl;
+		}
+	}
+
+	return 0;
+}

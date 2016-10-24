@@ -1,0 +1,75 @@
+#include "udpPort.h"
+
+udpPort::udpPort()
+{
+
+}
+
+
+bool udpPort::OpenPort(int port)
+{
+	timeOUT.tv_sec = 0;
+	timeOUT.tv_nsec = 1;
+
+	//this->sockfd = sockfd;
+	sockfd = socket(AF_INET,SOCK_DGRAM, 0);
+	if(sockfd < 0)
+	{
+		printf("error opening socket \n");
+		return false;
+	}
+
+	bzero((char*)&UDPserveraddr, sizeof(UDPserveraddr));
+	UDPserveraddr.sin_family = AF_INET;
+	UDPserveraddr.sin_port = htons(port);
+	UDPserveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+	if(bind(sockfd,(sockaddr*) &UDPserveraddr,sizeof(UDPserveraddr))<0)
+	{
+		printf("socket binding error \n");
+		return false;
+	}
+
+	return true;
+}
+
+int udpPort::CheckData(){
+	int len2 = sizeof(struct sockaddr_in);
+
+		FD_ZERO(&fds);
+		FD_SET(sockfd,&fds);
+		int rc = pselect(sockfd,&fds,NULL,NULL,&timeOUT,NULL);
+
+		    //flag=(MSG_PEEK | MSG_DONTWAIT) check if there is data and then read ht packet
+		int incoming = recvfrom(sockfd,buffer,100,(MSG_PEEK | MSG_DONTWAIT),(struct sockaddr *) &clientaddr,(socklen_t *)&len2);
+
+		return incoming;
+}
+void udpPort::ReadPort(char *rxbuffer,int len)
+{
+
+	int len2 = sizeof(struct sockaddr_in);
+
+	FD_ZERO(&fds);
+	FD_SET(sockfd,&fds);
+	int rc = pselect(sockfd,&fds,NULL,NULL,&timeOUT,NULL);
+
+	    //flag=(MSG_PEEK | MSG_DONTWAIT) check if there is data and then read ht packet
+	int incoming = recvfrom(sockfd,rxbuffer,len,0,(struct sockaddr *) &clientaddr,(socklen_t *)&len2);
+
+
+}
+
+int udpPort::write(char *txbuffer){
+
+}
+
+
+bool udpPort::ClosePort()
+{
+	close(sockfd);
+}
+
+
+
+

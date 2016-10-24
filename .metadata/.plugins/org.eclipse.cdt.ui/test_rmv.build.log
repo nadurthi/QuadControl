@@ -1,0 +1,11 @@
+
+**** Build of configuration Debug for project test_rmv ****
+
+**** Internal Builder is used for build               ****
+****  WARNING: The "Debug" Configuration may not build  ****
+****  because it uses the "MinGW GCC"  ****
+****  tool-chain that is unsupported on this system.  ****
+
+****  Attempting to build...  **** 
+
+Nothing to build for test_rmv

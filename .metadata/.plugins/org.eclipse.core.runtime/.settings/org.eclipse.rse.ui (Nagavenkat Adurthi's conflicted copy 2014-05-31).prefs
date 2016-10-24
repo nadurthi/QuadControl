@@ -1,0 +1,4 @@
+#Sat May 31 14:51:09 EDT 2014
+org.eclipse.rse.preferences.verify.connection=false
+eclipse.preferences.version=1
+org.eclipse.rse.preferences.order.connections=WINDOWS-UI845QE.Local;WINDOWS-UI845QE.192.168.7.2;WINDOWS-UI845QE.10.0.0.100

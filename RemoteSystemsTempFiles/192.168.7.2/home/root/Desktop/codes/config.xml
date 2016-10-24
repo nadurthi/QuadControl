@@ -1,0 +1,12 @@
+<vicon tmstmp="false" IP="10.0.0.1" network="10.0.0.255" UDP="1360"> 
+
+  
+   
+
+
+
+
+    <object name="test">
+    <prop type="Quaternion"/>
+    </object>
+</vicon>

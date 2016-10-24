@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Delete resource &apos;MPU6050i2c/Motor_i2c_comm.h&apos;" deleteContents="false" description="Delete resource &apos;MPU6050i2c/Motor_i2c_comm.h&apos;" element1="/MPU6050i2c/Motor_i2c_comm.h" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="1" stamp="1395615538091"/>
+</session>

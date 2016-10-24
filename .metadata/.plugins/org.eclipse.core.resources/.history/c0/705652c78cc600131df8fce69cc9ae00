@@ -1,0 +1,46 @@
+#include "kinematic_estimators.h"
+
+
+
+//add the data in D to the matrix T, row wise
+void Queue_add(double * D,double T[][data_queue_length],int nrows) {
+
+for(int r=0;r<nrows;r++){
+	for(int c=0;c<data_queue_length-1;c++){
+		T[r][c]=T[r][c+1];
+	}
+}
+for(int r=0;r<nrows;r++){
+	T[r][data_queue_length]=D[r];
+}
+
+}
+
+//get the average of the queue T into the array D
+void Queue_avg(double * D,double T[][data_queue_length],int nrows) {
+	for(int r=0;r<nrows;r++){
+		D[r]=0;
+		for(int c=0;c<data_queue_length;c++){
+			D[r]=D[r]+T[r][c];
+		}
+	}
+}
+
+
+
+
+void Condition_latest_data(QuadStateVariable * data,int algo){
+	//checking if Fd,ba,bg,rmis,qmis make sense
+	if(data->Fd){	}
+
+//remove outliers for queues
+	//algo 1: tested on matlab
+	if(algo==1){
+    //only the queues for the measurements
+    //assumpiton: the last value in the queue is the latest raw data. This will be replaced by a outlier/averager filtered data. The raw data queue
+	// is not altered
+	//first compute the standard deviation of the current data set
+
+
+	}
+}

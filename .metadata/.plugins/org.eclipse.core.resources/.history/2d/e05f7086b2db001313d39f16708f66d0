@@ -1,0 +1,74 @@
+
+#include <iostream>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <linux/i2c.h>
+#include <linux/i2c-dev.h>
+#include <sys/ioctl.h>
+#include <stropts.h>
+#include <cmath>
+#include <stdio.h>
+#include <string>
+#include <sys/types.h>
+#include<limits>
+#include <time.h>
+#include <sys/time.h>
+#include <stdint.h>
+#include <fstream>
+#include <cmath>
+
+
+
+#include "SimpleTimer.h"
+
+using namespace std;
+
+
+
+#include "udpPort.h"
+
+#include "I2Cdev.h"
+#include "MPU6050.h"
+
+MPU6050 AccelGyroSensor;
+
+SimpleTimer OnboardTimer,TicToc;
+
+udpPort TxUDP;
+
+
+
+int main() {
+
+//Setup UDP connection
+	char addressTx[30]="10.0.0.3";
+	TxUDP.OpenPort_write(addressTx,1234);
+
+
+	OnboardTimer.SetTsec(0.009);
+
+
+//initialize the imu
+AccelGyroSensor.initialize();
+
+
+double Data_imu[7];
+char txbuffer[100];
+
+    while(1){
+    	OnboardTimer.ResetTimer();
+
+
+
+            // Update IMU measurement
+    				AccelGyroSensor.getScaledaccgyro_timestamped(Data_imu);
+    				snprintf(txbuffer,100,"%f %f %f %f %f %f %f\n",Data_imu[0],Data_imu[1],Data_imu[2],Data_imu[3],Data_imu[4],Data_imu[5],Data_imu[6]);
+    				TxUDP.write(txbuffer,100);
+
+    	while(OnboardTimer.CheckTimer()){}
+
+    } //while eternal
+
+    return 1;
+}

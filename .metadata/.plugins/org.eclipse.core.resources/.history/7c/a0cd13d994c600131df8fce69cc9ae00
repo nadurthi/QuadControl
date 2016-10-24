@@ -1,0 +1,139 @@
+
+
+
+
+
+
+
+
+#ifndef _KINEMATIC_ESTIMATORS_H_
+#define _KINEMATIC_ESTIMATORS_H_
+
+
+
+#include <iostream>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string>
+#include <sys/types.h>
+#include <fstream>
+#include <cmath>
+#include "quaternion_operations.h"
+#include <algorithm>
+using namespace std;
+
+#include "SimpleTimer.h"
+#include "MPU6050.h"
+
+
+#define data_queue_length 10  //no. of time steps of data to remember( so it can be used for simple moving average filters)
+
+
+
+
+class SimpleQueue {
+	double * foo[];
+
+public:
+	void CreateQ(int rows,int columns){
+		foo = new double [rows][columns];
+	}
+
+};
+
+
+
+//add the data in D to the matrix T, row wise
+void Queue_add(double * D,double T[][data_queue_length],int nrows);
+
+
+//get the average of the queue T into the array D
+void Queue_avg(double * D,double T[][data_queue_length],int nrows) ;
+
+//send matrix T in and then get the std
+double Queue_std(double T[][data_queue_length],int nrows);
+
+
+ //%%%%%%%%%%%%%%%%%%%%%%%   States used in your estimator/controller   %%%%%%%%%%%%%%%%%%%%%%
+struct QuadStateVariable {
+	double t,tvec[data_queue_length];
+	double q[4],w[3],x[3],v[3],a[3],wdot[3]; //all the current filtered estimated quantities
+	 double w_meas[3],a_meas[3],x_meas[3],q_meas[4]; //stores the history of IMU measurements
+
+	 // raw data with not conditioning or estimation
+	 double Data_w_meas[3][data_queue_length],Data_a_meas[3][data_queue_length],Data_q_meas[4][data_queue_length],Data_x_meas[3][data_queue_length];
+
+	 // filtered data after conditions and estimation
+	 double Data_w_est[3][data_queue_length],Data_a_est[3][data_queue_length],Data_q_est[4][data_queue_length],Data_x_est[3][data_queue_length];
+	 double Data_v_est[3][data_queue_length],Data_wdot_est[3][data_queue_length];
+
+	 double Fd[3]; //latest force thrust required
+
+	 double ba[3],bg[3],rmis[3],qmis[4];//all the constant est parameters
+
+	 // the std deviatins required for outlier detection q[4][3]=[q0,q1,q2,q3][maxstd,meanstd,curr_std]
+	 double Maxstd_q[4][3],Maxstd_w[3][3],Maxstd_a[3][3],Maxstd_x[3][3],Maxstd_v[3][3],Maxstd_wdot[3][3];
+};
+ //*******************************************************************************************
+
+
+/*
+ * Function to first condition the data (remove outlier data). Check for physical consistency
+ * for all the variables (because sometimes data from serial can be erratic). if there is an outlier
+ * just use previous value or avg value
+ */
+void Condition_latest_data(QuadStateVariable * data,int algo);
+
+
+
+
+
+
+
+
+// Filter 1:   Onboard attitude estimator : estimates q and w.  (quaternion and body rates)
+// Primary input are acc and gyro measurements
+// secondary inputs are external vicon x and q. (this comes at a slower rate).
+// Additionally the biases can be estimated onboard or on ground station.
+// Have to send the imu data back to ground station at the same rate as vicon input.
+// REMEMBER: the acc measurements actually measure the gravity force also. so always remove the gravity force to get true acc values
+
+//**************************************** Method 1a: onboard bias correction ******************************************************
+
+
+
+
+
+//**************************************** Method 1b: use ground station bias correction ******************************************************
+//FUTURE: Correct IMU q misalignment wrt to vicon q
+
+
+
+
+
+
+
+//Filter 2: Onboard attitude estimator
+// Primary input are acc and gyro measurements
+// No secondary vicon input
+// biases are to be corrected with onboard imu data itself(perhaps at time 0)
+// REMEMBER: the acc measurements actually measure the gravity force also. so always remove the gravity force to get true acc values
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#endif

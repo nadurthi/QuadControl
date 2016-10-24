@@ -1,0 +1,38 @@
+#ifndef UDPPORT_H_
+#define UDPPORT_H_
+
+#include "stdio.h"
+#include "stdlib.h"
+#include <unistd.h>
+#include <strings.h>
+#include "sys/types.h"
+#include "sys/socket.h"
+#include "netinet/in.h"
+#include "netdb.h"
+#include <string>
+
+class udpPort
+{
+private:
+	int sockfd;
+	int fd;
+	struct sockaddr_in UDPserveraddr;
+	struct sockaddr_in clientaddr;
+	struct timespec timeOUT;
+	fd_set fds;
+char buffer[100];
+
+public:
+	udpPort();
+	bool OpenPort(int port);
+	bool ClosePort();
+	int CheckData();
+	void ReadPort(char *rxbuffer,int len);
+	bool wirte(std::string Msg);
+	bool begin();
+};
+
+#endif
+
+
+

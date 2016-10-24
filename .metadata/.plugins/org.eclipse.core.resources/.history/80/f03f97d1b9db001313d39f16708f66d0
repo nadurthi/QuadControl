@@ -1,0 +1,167 @@
+///////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (C) OMG Plc 2009.
+// All rights reserved.  This software is protected by copyright
+// law and international treaties.  No part of this software / document
+// may be reproduced or distributed in any form or by any means,
+// whether transiently or incidentally to some other use of this software,
+// without the written permission of the copyright owner.
+//
+///////////////////////////////////////////////////////////////////////////////
+
+#include "vicon_data_custom.h"
+
+#include <iostream>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <linux/i2c.h>
+#include <linux/i2c-dev.h>
+#include <sys/ioctl.h>
+#include <stropts.h>
+#include <cmath>
+#include <stdio.h>
+#include <string>
+#include <sys/types.h>
+#include <time.h>
+#include <sys/time.h>
+#include <stdint.h>
+#include <fstream>
+#include <cmath>
+#include "controllers.h"
+#include "SimpleTimer.h"
+
+using namespace std;
+#include "udpPort.h"
+#include "matrix_operations.h"
+
+#include "SerialcommGroundOnboard.h"
+#include "kinematic_estimators.h"
+#include "State_data_manager.h"
+#include "/home/nagnanamus/Dropbox/BBB/codes/quad_control/working_source_codes/Eigen/Dense"
+
+SimpleTimer GroundTimer,TicToc;
+
+QuadStateVariable QuadState;
+
+Serial_comm_Ground_Onboard OnboardComm;
+
+//EKF_Estimator_onboard1  GroundEstimator;
+EKF_Estimator1  GroundEstimator;
+
+udpPort RxUDP;
+
+
+
+
+using namespace std;
+
+
+
+Vicon_data vicondata;
+
+
+int main( int argc, char* argv[] )
+{
+
+char namebuf[500];
+	ofstream DataIMU,DataVICON;
+	            DataIMU.open ("Raw_IMU.txt");
+	            DataVICON.open ("Raw_VICON.txt");
+
+				//snprintf(namebuf, sizeof(namebuf), "%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s\n","t","x_meas","y_meas","z_meas","q0_meas","q1_meas","q2_meas","q3_meas","ax_meas","ay_meas","az_meas","wx_meas","wy_meas","wz_meas","x","y","z","q0","q1","q2","q3","ax","ay","az","wx","wy","wz","Marker1x","Marker1y","Marker1z"  ,"Marker2x","Marker2y","Marker2z"  ,"Marker3x","Marker3y","Marker3z"  ,"Marker4x","Marker4y","Marker4z"	,"Marker5x","Marker5y","Marker5z"	,"Marker6x","Marker6y","Marker6z"	,"Marker7x","Marker7y","Marker7z");
+				snprintf(namebuf, sizeof(namebuf), "%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s\n","tvicon","x_meas","y_meas","z_meas","q0_meas","q1_meas","q2_meas","q3_meas","Marker1x","Marker1y","Marker1z"  ,"Marker2x","Marker2y","Marker2z"  ,"Marker3x","Marker3y","Marker3z"  ,"Marker4x","Marker4y","Marker4z"	,"Marker5x","Marker5y","Marker5z"	,"Marker6x","Marker6y","Marker6z"	,"Marker7x","Marker7y","Marker7z");
+				DataVICON << namebuf;
+				snprintf(namebuf, sizeof(namebuf), "%s %s %s %s %s %s %s %s\n","timu_ground","timu_onboard","ax_meas","ay_meas","az_meas","wx_meas","wy_meas","wz_meas");
+								DataIMU << namebuf;
+
+
+	//Setup serial comm with onboard
+     	//OnboardComm.Init_as_GroundStation();
+
+   //Setup UDP connection
+	char addressRx[30]="10.0.0.3";
+	RxUDP.OpenPort_write(addressRx,1234);
+
+	//set the state variables
+		QuadState.Init_SetZero();
+
+
+	//Setup the ground timer
+		GroundTimer.SetTsec(0.01);
+
+
+
+	// Initialize the estimator
+	//	GroundEstimator.InitializeFilter();
+
+	//vicon initalize
+			vicondata.initialize(1);
+			vicondata.SetT0sec();
+			TicToc.ResetTimer();
+
+
+	double Data[8],Data_imu[7],u[4],tt, MarkerX[21];
+	//double aimu[3],a[3],rmis[3],qmis[4],q[4],ba[3],w[3],wdot[3];
+	//SimpleQueue ViconInitQ,IMUInitQ;
+
+
+	//ViconInitQ.CreateQ(100,7);
+	//IMUInitQ.CreateQ(100,6);
+
+
+Data[0]=0;
+
+Data[1]=0.1;
+Data[2]=0.2;
+Data[3]=0.3;
+
+Data[4]=1;
+Data[5]=0;
+Data[6]=0;
+Data[7]=0;
+
+double Timu;
+char rxbuffer[100];
+int i=0,m=0;
+//eternal while
+GroundTimer.ResetTimer();
+	while(1){
+
+
+
+		if(GroundTimer.CheckTimer()==false){
+			vicondata.GetData(Data,MarkerX);
+			GroundTimer.ResetTimer();
+			snprintf(namebuf, sizeof(namebuf), "%f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f\n",Data[0],Data[1],Data[2],Data[3],Data[4],Data[5],Data[6],Data[7],MarkerX[0],MarkerX[1],MarkerX[2]  ,MarkerX[3],MarkerX[4],MarkerX[5]  ,MarkerX[6],MarkerX[7],MarkerX[8]  ,MarkerX[9],MarkerX[10],MarkerX[11]	,MarkerX[12],MarkerX[13],MarkerX[14]	,MarkerX[15],MarkerX[16],MarkerX[17]	,MarkerX[18],MarkerX[19],MarkerX[20]);
+					DataVICON << namebuf;
+
+		}
+
+		if(RxUDP.CheckData()>=0){
+			Timu=TicToc.GetTime_from_T0sec();
+			RxUDP.ReadPort(rxbuffer,100);
+			m=snprintf(namebuf, sizeof(namebuf), "%f ",Timu);
+
+			while(1){
+				if(rxbuffer[i]=='\n'){
+					*(namebuf+m+i)='\n';
+					*(namebuf+m+i+1)='\0';
+					break;
+				}
+				*(namebuf+m+i)=rxbuffer[i]
+				                        i++;
+			}
+
+			DataIMU << namebuf;
+		}
+
+
+		//while(GroundTimer.CheckTimer()){}
+
+
+	}
+
+return 1;
+
+}

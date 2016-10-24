@@ -1,0 +1,11 @@
+
+**** Build of configuration Debug for project MPU6050i2c ****
+
+make all 
+Building target: libMPU6050i2c
+Invoking: GCC C++ Linker
+arm-linux-gnueabi-g++ -L/usr/arm-linux-gnueabi/lib -shared -o"libMPU6050i2c"  ./src/main.o   
+/usr/lib/gcc/arm-linux-gnueabi/4.6/../../../../arm-linux-gnueabi/bin/ld: ./src/main.o: relocation R_ARM_THM_MOVW_ABS_NC against `accelgyro' can not be used when making a shared object; recompile with -fPIC
+./src/main.o: could not read symbols: Bad value
+collect2: ld returned 1 exit status
+make: *** [libMPU6050i2c] Error 1

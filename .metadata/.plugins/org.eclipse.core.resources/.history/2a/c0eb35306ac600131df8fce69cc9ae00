@@ -1,0 +1,189 @@
+
+#ifndef MISCFUNCTIONS_H
+#define MISCFUNCTIONS_H
+
+
+#include <stdlib.h>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include<math.h>
+#include "serialib.h"
+
+using namespace std;
+/*
+ * parses the char array and separate the fields and converts them to float
+ * the fields are separated by space. the char array has to end with '\n' char
+ * there are n fields, the return double array has to be same size.
+ * L=length of the char array without the \n or \0 chars
+ */
+double * CharArray2floatfields(double *X,char *S, int L ){
+	int j=0,n=0;
+	char buff[30];
+	for(int i=0;i<L;i++){
+      if(S[i]==' '|| S[i]=='\n'||S[i]=='\0')
+      {
+    	  buff[j]='\0';
+    	  j=0;
+    	  X[n]=atof(buff);
+    	  n++;
+      }
+      else{
+		buff[j]=S[i];
+		j++;
+      }
+	}
+	return X;
+}
+/*
+ * Converts the array of floats to a char array
+ * return the number of characters
+ * L is the number of array in X
+ */
+
+int floatfields2CharArray(double *X,int L,char * S,int Slen, int options ){
+
+	if(options==0){
+	for(int n=0;n<L-1;n++){
+		snprintf(S, Slen, "%f ",X[n]);
+    }
+	}
+	else
+	{
+		snprintf(S, Slen, "%d ",options);
+	}
+	snprintf(S, Slen, "%f\n",X[L-1]);
+    return sizeof(S);
+}
+
+
+
+/*
+* request data from ground station for x and q.
+* request is initiated by sending raw w_meas and a_meas to ground station
+* send options:                                    [in return we get]
+*           [1 t w_meas a_meas] for only return on [t x q]
+*           [2 t w_meas a_meas] for only return on [t x q Fd a wdot]
+*           [3 t w_meas a_meas] for only return on [t x q Fd a wdot ba bg]
+*           [4 t w_meas a_meas] for only return on [t x q Fd a wdot ba bg rmis qmis]
+*           [5 t w_meas a_meas w_est q_est wdot_est x_est v_est a_est] for only return on [t x q]
+*/
+
+void Request_GroundStationData(serialib *SerialCom,int option,double t,double * w_meas,double * a_meas,double * w,double * q,double * wdot,double * x,double * v,double * a,double * Fd,double *ba,double *bg,double *rmis,double *qmis){
+	char namebuf[500];
+	double X[30];
+	int Ret;
+
+	X[0]=t;
+
+	X[1]=w_meas[0];	X[2]=w_meas[1];	X[3]=w_meas[2];
+
+	X[4]=a_meas[0];	X[5]=a_meas[1];	X[6]=a_meas[2];
+
+	X[7]=w[0];	X[8]=w[1];	X[9]=w[2];
+
+	X[10]=q[0];	X[11]=q[1];	X[12]=q[2];	X[13]=q[3];
+
+	X[14]=wdot[0];	X[15]=wdot[1];	X[16]=wdot[2];
+
+	X[17]=x[0];	X[18]=x[1];	X[19]=x[2];
+
+	X[20]=v[0];	X[21]=v[1];	X[22]=v[2];
+
+	X[23]=a[0];	X[24]=a[1];	X[25]=a[2];
+
+	switch (option) {
+	case 1:
+		floatfields2CharArray(X,7,namebuf,500, 1 );
+	  break;
+	case 2:
+		floatfields2CharArray(X,7,namebuf,500, 2 );
+	  break;
+	case 3:
+		floatfields2CharArray(X,7,namebuf,500, 3 );
+	  break;
+	case 4:
+		floatfields2CharArray(X,7,namebuf,500, 4 );
+	  break;
+	case 5:
+		floatfields2CharArray(X,26,namebuf,500, 5 );
+	  break;
+	default:
+	  // Code
+	  cout<<"Ground communication option not available"<<endl;
+		break;
+	}
+
+// write to ground station
+	Ret=SerialCom->WriteString(namebuf);
+	    		if (Ret!=1)
+	    		{printf ("Error while writing data\n");}
+
+// Read returned data from ground station
+	bzero(namebuf,300);
+	Ret=0;
+    while(1){
+
+		Ret=SerialCom->ReadString(namebuf,'\n',500,10);
+		if (Ret>0){
+         break;
+		}
+    }
+
+    //converting data to floats and store into data
+
+    CharArray2floatfields(X,namebuf, Ret );
+
+    t=X[0];
+    x[0]=X[1];	x[1]=X[2];	x[2]=X[3];
+    q[0]=X[4];	q[1]=X[5];	q[2]=X[6]; q[3]=X[7];
+    switch (option) {
+    	case 1:
+
+    	  break;
+    	case 2:
+
+    		Fd[0]=X[8]; Fd[1]=X[9]; Fd[2]=X[10];
+    		a[0]=X[11]; a[1]=X[12]; a[2]=X[13];
+    		wdot[0]=X[14]; wdot[1]=X[15]; wdot[2]=X[16];
+
+    	  break;
+    	case 3:
+    		Fd[0]=X[8]; Fd[1]=X[9]; Fd[2]=X[10];
+    		a[0]=X[11]; a[1]=X[12]; a[2]=X[13];
+    		wdot[0]=X[14]; wdot[1]=X[15]; wdot[2]=X[16];
+        	ba[0]=X[17]; ba[1]=X[18]; ba[2]=X[19];
+        	bg[0]=X[20]; bg[1]=X[21]; bg[2]=X[22];
+    	  break;
+    	case 4:
+    		Fd[0]=X[8]; Fd[1]=X[9]; Fd[2]=X[10];
+    		a[0]=X[11]; a[1]=X[12]; a[2]=X[13];
+    		wdot[0]=X[14]; wdot[1]=X[15]; wdot[2]=X[16];
+    		ba[0]=X[17]; ba[1]=X[18]; ba[2]=X[19];
+    		bg[0]=X[20]; bg[1]=X[21]; bg[2]=X[22];
+    		rmis[0]=X[23]; ba[1]=X[24]; ba[2]=X[25];
+    		qmis[0]=X[26]; qmis[1]=X[27]; qmis[2]=X[28]; qmis[2]=X[29];
+    	  break;
+    	case 5:
+
+    	  break;
+    	default:
+    	  // Code
+    	  cout<<"Ground communication option not available"<<endl;
+    		break;
+    	}
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+#endif

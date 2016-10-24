@@ -1,0 +1,54 @@
+
+**** Build of configuration Release for project estimation ****
+
+make all 
+Building file: ../src/estimation.cpp
+Invoking: GCC C++ Compiler
+arm-linux-gnueabi-g++ -I/usr/arm-linux-gnueabi/include/c++/4.6.3 -I"/home/nagnanamus/Dropbox/BBB/codes/quad_control/working_source_codes/Eigen" -O3 -Wall -c -fmessage-length=0 -MMD -MP -MF"src/estimation.d" -MT"src/estimation.d" -o"src/estimation.o" "../src/estimation.cpp"
+In file included from ../src/estimation.cpp:22:0:
+../src/pwm_4motor.h: In member function ‘void PWMmotors::set_period()’:
+../src/pwm_4motor.h:82:50: warning: format ‘%lu’ expects argument of type ‘long unsigned int’, but argument 4 has type ‘int’ [-Wformat]
+../src/pwm_4motor.h:82:50: warning: format ‘%lu’ expects argument of type ‘long unsigned int’, but argument 4 has type ‘int’ [-Wformat]
+In file included from ../src/estimation.cpp:24:0:
+../src/BlackBoxRecorder.h: In function ‘void* SaveData(void*)’:
+../src/BlackBoxRecorder.h:64:25: warning: variable ‘my_data’ set but not used [-Wunused-but-set-variable]
+../src/BlackBoxRecorder.h: In function ‘int Init_thread()’:
+../src/BlackBoxRecorder.h:108:6: warning: unused variable ‘status’ [-Wunused-variable]
+In file included from ../src/estimation.cpp:26:0:
+../src/controllers.h: In function ‘void ComputeSingleAxis_att(QuadStateVariable*)’:
+../src/controllers.h:274:28: warning: unused variable ‘wdt’ [-Wunused-variable]
+../src/controllers.h:274:35: warning: unused variable ‘ew’ [-Wunused-variable]
+../src/controllers.h: In function ‘void Control_angrate_shaping(QuadStateVariable*)’:
+../src/controllers.h:305:13: warning: unused variable ‘ew’ [-Wunused-variable]
+../src/controllers.h:305:81: warning: unused variable ‘fv’ [-Wunused-variable]
+../src/controllers.h:305:87: warning: variable ‘fu’ set but not used [-Wunused-but-set-variable]
+../src/controllers.h:306:13: warning: unused variable ‘wdt’ [-Wunused-variable]
+../src/estimation.cpp: In function ‘int main()’:
+../src/estimation.cpp:119:8: warning: variable ‘DataVicon’ set but not used [-Wunused-but-set-variable]
+../src/estimation.cpp:119:33: warning: unused variable ‘Euldes’ [-Wunused-variable]
+../src/estimation.cpp:216:21: warning: unused variable ‘Wrmax’ [-Wunused-variable]
+In file included from ../src/estimation.cpp:22:0:
+../src/pwm_4motor.h: In member function ‘void PWMmotors::export_pwms()’:
+../src/pwm_4motor.h:63:21: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+../src/pwm_4motor.h: In member function ‘void PWMmotors::set_period()’:
+../src/pwm_4motor.h:83:21: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+../src/pwm_4motor.h: In member function ‘void PWMmotors::start_pwms()’:
+../src/pwm_4motor.h:148:21: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+../src/pwm_4motor.h: In member function ‘void PWMmotors::set_duties(long unsigned int, long unsigned int, long unsigned int, long unsigned int)’:
+../src/pwm_4motor.h:100:21: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+../src/pwm_4motor.h:110:21: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+../src/pwm_4motor.h:120:21: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+../src/pwm_4motor.h:130:21: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+In file included from ../src/estimation.cpp:26:0:
+../src/controllers.h: In function ‘double signum(double)’:
+../src/controllers.h:37:1: warning: control reaches end of non-void function [-Wreturn-type]
+In file included from ../src/estimation.cpp:24:0:
+../src/BlackBoxRecorder.h: In function ‘void PushData2BlackBoxPipe(int, char*, int)’:
+../src/BlackBoxRecorder.h:119:40: warning: ignoring return value of ‘ssize_t write(int, const void*, size_t)’, declared with attribute warn_unused_result [-Wunused-result]
+Finished building: ../src/estimation.cpp
+ 
+Building target: estimation
+Invoking: GCC C++ Linker
+arm-linux-gnueabi-g++ -L/usr/arm-linux-gnueabi/lib -o"estimation"  ./src/I2Cdev.o ./src/MPU6050.o ./src/SerialcommGroundOnboard.o ./src/State_data_manager.o ./src/UDPcommGroundOnboard.o ./src/estimation.o ./src/kinematic_estimators.o ./src/matrix_operations.o ./src/quaternion_operations.o ./src/serialib.o ./src/udpPort.o   -lpthread
+Finished building target: estimation
+ 

@@ -1,0 +1,198 @@
+// I2C device class (I2Cdev) demonstration Arduino sketch for MPU6050 class
+// 10/7/2011 by Jeff Rowberg <jeff@rowberg.net>
+// Updates should (hopefully) always be available at https://github.com/jrowberg/i2cdevlib
+//
+// Changelog:
+//      2013-05-08 - added multiple output formats
+//                 - added seamless Fastwire support
+//      2011-10-07 - initial release
+
+/* ============================================
+I2Cdev device library code is placed under the MIT license
+Copyright (c) 2011 Jeff Rowberg
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+===============================================
+*/
+
+// I2Cdev and MPU6050 must be installed as libraries, or else the .cpp/.h files
+// for both classes must be in the include path of your project
+#include <iostream>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <linux/i2c.h>
+#include <linux/i2c-dev.h>
+#include <sys/ioctl.h>
+#include <stropts.h>
+#include <math.h>
+#include <stdio.h>
+#include <string>
+#include <sys/types.h>
+#include <time.h>
+#include <sys/time.h>
+#include "serialib.h"
+#include <fstream>
+#include <cmath>
+//#include "Motor_spi_comm.h"
+//#include "pwm_4motor.h"
+//#include "timeSeqFilters.h"
+//#include "quaternion_operations.h"
+
+#include "SimpleTimer.h"
+#include <algorithm>
+using namespace std;
+
+#include "I2Cdev.h"
+#include "MPU6050.h"
+#include <stdint.h>
+#include "misc_functions.h"
+#include "kinematic_estimators.h"
+
+
+
+#define         DEVICE_PORT             "/dev/ttyO1"
+
+// AD0 low = 0x68 (default for InvenSense evaluation board)
+// AD0 high = 0x69
+//I2Cdev i2c_comm;
+MPU6050 accelgyro;
+//MPU6050 accelgyro(0x69); // <-- use for AD0 high
+
+
+
+
+
+//initialize the estimates for biases. This assumes that the
+//vicon frame matches the imu frame.
+//or atleast qmis and rmis are known
+void initdata_sensors_para_est(){
+	 double AccGyro[7],avgAccGyro[6]={0,0,0,0,0,0};
+     double vicondata[8],avgvicondata[7];
+	 onboardestTimer.SetTsec(0.01);
+	 onboardestTimer.ResetTimer();
+	 accelgyro.initialize();
+
+int i=0;
+int N=100;  //the number of measurements to take to initialize the biases
+for(i=0;i<100;i++){
+
+	 while(onboardestTimer.CheckTimer()){}
+	 accelgyro.getCorrectedScaledaccgyro_timestamped(AccGyro);
+	 onboardestTimer.ResetTimer();
+
+	 avgAccGyro[0]=avgAccGyro[0]+AccGyro[1];   //ax
+	 avgAccGyro[1]=avgAccGyro[1]+AccGyro[2];//ay
+	 avgAccGyro[2]=avgAccGyro[2]+AccGyro[3];//az
+	 avgAccGyro[3]=avgAccGyro[3]+AccGyro[4];//gx
+	 avgAccGyro[4]=avgAccGyro[4]+AccGyro[5];//gy
+	 avgAccGyro[5]=avgAccGyro[5]+AccGyro[6];//gz
+
+}
+    avgAccGyro[0]=avgAccGyro[0]/100;
+	 avgAccGyro[1]=avgAccGyro[1]/100;
+	 avgAccGyro[2]=avgAccGyro[2]/100;
+	 avgAccGyro[3]=avgAccGyro[3]/100;
+	 avgAccGyro[4]=avgAccGyro[4]/100;
+	 avgAccGyro[5]=avgAccGyro[5]/100;
+
+	 // this avg value is itself the bias for each measurement. hence update the biases
+	 accelgyro.setBiasAccGyro(avgAccGyro[0],avgAccGyro[1],avgAccGyro[2],avgAccGyro[3],avgAccGyro[4],avgAccGyro[5]);
+
+
+}
+
+
+
+int main() {
+     //initialize
+
+
+	// Open serial port
+	 serialib LS;// Object of the serialib class
+	 char Buffer[128];
+	 int Ret;
+	    Ret=LS.Open(DEVICE_PORT,115200);                                        // Open serial link at 115200 bauds
+	    if (Ret!=1) {                                                           // If an error occured...
+	        printf ("Error while opening port. Permission problem ?\n");        // ... display a message ...
+	        return Ret;                                                         // ... quit the application
+	    }
+	    printf ("Serial port opened successfully !\n");
+
+
+		char namebuf[500];
+
+
+		double AccelGyro[7];
+		Ret=0;
+		while(1){
+		Ret=LS.ReadString(Buffer,'\n',128,8);                                // Read a maximum of 128 characters with a timeout of 0.1 seconds
+				if (Ret>0 && (Buffer[0]=='s') && (Buffer[1]=='t') && (Buffer[2]=='a') && (Buffer[3]=='r') && (Buffer[4]=='t'))                                                              // If a string has been read from, print the string
+				    {
+					accelgyro.initialize();
+					accelgyro.setBiasAccGyro(0,0,0,0,0,0);
+					accelgyro.getCorrectedScaledaccgyro_timestamped(AccelGyro);
+					break;
+				    }
+
+		}
+
+
+
+Ret=0;
+    while(1){
+
+    	//******************-------------------------------______________________________-----------------***************
+    	//update from ground station: q,wdot,xddot,Fd,qd      optional:  wd,rmis, qmis, ba and bg at regular times
+    	//and send the raw imu data
+    	if(LS.Peek()>0){
+    	Ret=LS.ReadString(Buffer,'\n',128,8);
+    		if (Ret>0){
+    		accelgyro.getCorrectedScaledaccgyro_timestamped(AccelGyro);
+    		snprintf(namebuf, sizeof(namebuf), "%f %f %f %f %f %f %f\n",AccelGyro[0],AccelGyro[1],AccelGyro[2],AccelGyro[3],AccelGyro[4],AccelGyro[5],AccelGyro[6]);
+    		Ret=LS.WriteString(namebuf);
+    		if (Ret!=1)
+    		{printf ("Error while writing data\n");}
+    		Ret=0;
+    		}
+    		LS.FlushReceiver();
+    	}
+
+
+
+    	//***************************************************************************************************************
+    	//onboard faster attitude controller
+    	accelgyro.getCorrectedScaledaccgyro_timestamped(AccelGyro);
+    	//cout<<AccelGyro[0]<<" "<<AccelGyro[1]<<" "<<AccelGyro[2]<<" "<<AccelGyro[3]<<" "<<AccelGyro[4]<<" "<<AccelGyro[5]<<" "<<AccelGyro[6] <<endl;
+
+
+
+
+
+    usleep(10000);
+    }
+
+
+
+
+
+
+    LS.Close();
+    return 1;
+}

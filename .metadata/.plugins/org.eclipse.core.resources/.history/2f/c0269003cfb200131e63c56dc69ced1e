@@ -1,0 +1,536 @@
+	 	 //============================================================================
+// Name        : quad_control.cpp
+// Author      : Nagnanamus
+// Version     :
+// Copyright   : Your copyright notice
+// Description : Hello World in C++, Ansi-style
+//============================================================================
+
+#include <iostream>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <linux/i2c.h>
+#include <linux/i2c-dev.h>
+#include <sys/ioctl.h>
+#include <stropts.h>
+#include <math.h>
+#include <stdio.h>
+#include <string>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <time.h>
+#include <sys/time.h>
+#include "udpPort.h"
+#include "sensorVicon.h"
+#include <netinet/in.h>
+#include <netdb.h>
+#include <fstream>
+#include <cmath>
+//#include "Motor_spi_comm.h"
+#include "pwm_4motor.h"
+#include "timeSeqFilters.h"
+#include "quaternion_operations.h"
+#include <algorithm>
+using namespace std;
+
+// body x-axis along front(1)
+// body y-axis along left(2)
+// body z-axis along up
+
+#define FRONTI2C 5  // turns c
+#define RIGHTI2C 10 // turns cc
+#define BACKI2C 15 // turns c
+#define LEFTI2C 20 // turns cc
+
+#define FSS 60
+#define LSS 48
+#define BSS 49
+#define RSS 115
+#define rstpin 30
+
+//define quad properties
+#define mg 19.6
+#define Quadmass 2
+#define MomArm 0.3
+#define ctf 0.8
+#define SafetyThrottleEfficiency 0.6
+//fF(f1)  is on +x-axis
+//fL(f2) is on +y-axis
+//fB(f3) is on -x-axis
+//fR(f4) is on -y-axis
+
+
+
+void error(const char *msg)
+{
+    perror(msg);
+    exit(0);
+}
+
+
+class SimpleTimer {
+private:
+	double Tsec,T0sec;
+	struct timeval T0;
+	struct timeval tv;
+	struct timezone tz;
+public:
+	void ResetTimer(){
+		gettimeofday(&tv,&tz);
+		T0sec=(double)tv.tv_sec+(double)(tv.tv_usec)/1000000;
+	}
+	void SetTsec(double tsec){
+		Tsec=tsec;
+	}
+	bool CheckTimer(){
+		double tt;
+		gettimeofday(&tv,&tz);
+		tt=(double)tv.tv_sec+(double)(tv.tv_usec)/1000000;
+		if (tt-T0sec>=Tsec)
+		{return false;}
+		else
+		{return true;}
+	}
+};
+
+
+double f2rpm(double f){
+	double rpm;
+	f=(double)f/9.8;
+	if(f<0)
+	f=0;
+
+	rpm=(-1621*pow(f,2)+6548*f+1313);
+
+	if(rpm<900)
+		rpm=900;
+
+	if(rpm>9000)
+		rpm=9000;
+
+
+	return rpm;
+}
+double f2pwm(double f){
+	double rpm;
+	f=(double)f/9.8;
+	if(f<0)
+	f=0;
+
+	if(f>25)
+		f=25;
+
+	rpm=(int)118*f+2000;
+
+
+	return rpm;
+}
+void ComputeAngRates(double * w,double *X){
+	double q[4];
+	double qdot[4],qinv[4];
+	//double w[4];
+	double qw[4];
+
+	q[0]=X[3];
+	q[1]=X[4];
+	q[2]=X[5];
+	q[3]=X[6];
+
+	qdot[0]=X[10];
+    qdot[1]=X[11];
+	qdot[2]=X[12];
+	qdot[3]=X[13];
+
+	quat_prod(qw,quat_inv(qinv,q),qdot);
+	w[0]=2*qw[1];
+	w[1]=2*qw[2];
+	w[2]=2*qw[3];
+
+	//return w;
+}
+
+double * ComputeControl(double * frpm,double * xd,double * xd_d,double * xd_dd,double * wd,double * b1d,double kp, double kd,double kq, double kw, double *X){
+
+
+	// first compute the control for x,y,z error and total force F
+     double ew[3],qw[4],qdot[4],q[4],ex[3],ev[3],fd[3],qd[4],R[3][3],b3d[3],b2d[3],nb1d[3],F,eq[4],qinv[4];
+     double M[3],wdt[3];
+     ex[0]=X[0]-xd[0];
+     ex[1]=X[1]-xd[1];
+     ex[2]=X[2]-xd[2];
+
+     ev[0]=X[7]-xd_d[0];
+     ev[1]=X[8]-xd_d[1];
+     ev[2]=X[9]-xd_d[2];
+
+     q[0]=X[3];
+     q[1]=X[4];
+     q[2]=X[5];
+     q[3]=X[6];
+
+     fd[0]=-kp*ex[0]-kd*ev[0]+ xd_dd[0]*Quadmass;
+     fd[1]=-kp*ex[1]-kd*ev[1]+ xd_dd[1]*Quadmass;
+     fd[2]=-kp*ex[2]-kd*ev[2]+ mg+ xd_dd[2]*Quadmass;
+
+     UnitVec(b3d,fd);
+     UnitVec(b2d,CrossProd(b2d,b3d,b1d));
+     CrossProd(nb1d,b2d,b3d);
+
+     R[0][0]=nb1d[0];R[1][0]=nb1d[1];R[2][0]=nb1d[2];
+     R[0][1]=b2d[0];R[1][1]=b2d[1];R[2][1]=b2d[2];
+     R[0][2]=b3d[0];R[1][2]=b3d[1];R[2][2]=b3d[2];
+
+     //generate the desired quaternion qd
+
+     Rot2Quat(qd,R);
+
+     // required thrust
+     quat_inv(qinv,qd);
+     quat_prod(eq,qinv,q);
+     /*cout<<"New"<<endl;
+
+     cout<<"qd= "<<qd[0]<<" "<<qd[1]<<" "<<qd[2]<<" "<<qd[3]<<endl;
+     cout<<"qinv= "<<qinv[0]<<" "<<qinv[1]<<" "<<qinv[2]<<" "<<qinv[3]<<endl;
+     cout<<"q= "<<q[0]<<" "<<q[1]<<" "<<q[2]<<" "<<q[3]<<endl;
+     cout<<"eq= "<<eq[0]<<" "<<eq[1]<<" "<<eq[2]<<" "<<eq[3]<<endl;
+*/
+     F=NormVec(fd)*(2*pow(eq[0],2)+2*pow(eq[3],2)-1);
+
+
+	//compute the required moments
+     qdot[0]=X[10];
+     qdot[1]=X[11];
+     qdot[2]=X[12];
+     qdot[3]=X[13];
+
+     	quat_prod(qw,quat_inv(qinv,q),qdot);
+     	quat_rot(wdt,quat_inv(qinv,eq),wd);
+     	//quat_rot(wdt,eq,wd);
+     	//cout<<"qdot= "<<qdot[0]<<" "<<qdot[1]<<" "<<qdot[2]<<" "<<qdot[3]<<endl;
+     	//cout<<"qw= "<<qw[0]<<" "<<qw[1]<<" "<<qw[2]<<" "<<qw[3]<<endl;
+
+     	ew[0]=2*qw[1]-wdt[0];
+     	ew[1]=2*qw[2]-wdt[1];
+     	ew[2]=2*qw[3]-wdt[2];
+
+
+	M[0]=-kq*eq[1]-kw*ew[0];
+	M[1]=-kq*eq[2]-kw*ew[1];
+	M[2]=-kq*eq[3]-kw*ew[2];
+	cout<<F <<" "<<M[0]<<","<<M[1]<<","<<M[2]<<" "<<endl;
+
+
+	//cout<<fd[0]<<","<<fd[1]<<","<<fd[2]<<" "<<NormVec(nb1d)<<","<<NormVec(b2d)<<","<<NormVec(b3d)<<" "<<endl;
+	// compute the individual rpms for each rotor.
+
+	frpm[0]=f2rpm(F/4-M[1]/(2*MomArm)-M[2]/(4*ctf))*SafetyThrottleEfficiency;
+	frpm[1]=f2rpm(F/4+M[0]/(2*MomArm)+M[2]/(4*ctf))*SafetyThrottleEfficiency;
+	frpm[2]=f2rpm(F/4+M[1]/(2*MomArm)-M[2]/(4*ctf))*SafetyThrottleEfficiency;
+	frpm[3]=f2rpm(F/4-M[0]/(2*MomArm)+M[2]/(4*ctf))*SafetyThrottleEfficiency;
+
+	//    frpm[0]=F/4-M[1]/(2*MomArm)-M[2]/(4*ctf);
+	//	frpm[1]=F/4+M[0]/(2*MomArm)+M[2]/(4*ctf);
+	//	frpm[2]=F/4+M[1]/(2*MomArm)-M[2]/(4*ctf);
+	//	frpm[3]=F/4-M[0]/(2*MomArm)+M[2]/(4*ctf);
+	//cout<<F/4-M[1]/(2*MomArm)+M[2]/(4*ctf)<<" "<<F/4+M[0]/(2*MomArm)-M[2]/(4*ctf)<<" "<<F/4+M[1]/(2*MomArm)+M[2]/(4*ctf)<<" "<<F/4-M[0]/(2*MomArm)-M[2]/(4*ctf)<<" "<<endl;
+	return frpm;
+}
+// attitude only controller
+double * ComputeControl_att(double * frpm,double * qd,double * wd,double kq, double kw, double *X){
+
+
+	// first compute the control for x,y,z error and total force F
+     double ew[3],qw[4],qdot[4],q[4],eq[4],qinv[4],F;
+     double M[3],wdt[3];
+
+
+     q[0]=X[3];
+     q[1]=X[4];
+     q[2]=X[5];
+     q[3]=X[6];
+
+
+     // required thrust
+     quat_prod(eq,quat_inv(qinv,qd),q);
+
+
+
+	//compute the required moments
+     qdot[0]=X[10];
+     qdot[1]=X[11];
+     qdot[2]=X[12];
+     qdot[3]=X[13];
+
+     	quat_prod(qw,quat_inv(qinv,q),qdot);
+     	quat_rot(wdt,quat_inv(qinv,eq),wd);
+     	//quat_rot(wdt,eq,wd);
+
+     	ew[0]=2*qw[1]-wdt[0];
+     	ew[1]=2*qw[2]-wdt[1];
+     	ew[2]=2*qw[3]-wdt[2];
+        //cout<<2*qw[1]<<" "<< 2*qw[2]<<" "<< 2*qw[3]<<endl;
+
+	M[0]=-kq*eq[1]-kw*ew[0];
+	M[1]=-kq*eq[2]-kw*ew[1];
+	M[2]=-kq*eq[3]-kw*ew[2];
+
+
+
+
+  double d;
+	//set1
+    d=fmax(M[1]/(2*MomArm)+M[2]/(4*ctf),-M[0]/(2*MomArm)-M[2]/(4*ctf));
+	d=fmax(d,-M[1]/(2*MomArm)+M[2]/(4*ctf));
+	F=4*fmax(d,M[0]/(2*MomArm)-M[2]/(4*ctf))+0.1;
+	frpm[0]=F/4-M[1]/(2*MomArm)-M[2]/(4*ctf);
+	frpm[1]=F/4+M[0]/(2*MomArm)+M[2]/(4*ctf);
+	frpm[2]=F/4+M[1]/(2*MomArm)-M[2]/(4*ctf);
+	frpm[3]=F/4-M[0]/(2*MomArm)+M[2]/(4*ctf);
+
+
+
+	//set1
+	//F=fmax(M[1]/(2*MomArm)-M[2]/(4*ctf),-M[0]/(2*MomArm)+M[2]/(4*ctf),-M[1]/(2*MomArm)-M[2]/(4*ctf),M[0]/(2*MomArm)+M[2]/(4*ctf))+0.1;
+	//	frpm[0]=F/4-M[1]/(2*MomArm)+M[2]/(4*ctf);
+	//	frpm[1]=F/4+M[0]/(2*MomArm)-M[2]/(4*ctf);
+	//	frpm[2]=F/4+M[1]/(2*MomArm)+M[2]/(4*ctf);
+	//	frpm[3]=F/4-M[0]/(2*MomArm)-M[2]/(4*ctf);
+
+
+	//cout<<"Front = "<<frpm[0]<<" "<<"Left = " <<frpm[1]<<" " <<"Back = "<<frpm[2]<<" " <<"Right = "<<frpm[3]<<" " <<endl;
+
+	frpm[0]=f2rpm(frpm[0])*SafetyThrottleEfficiency;
+	frpm[1]=f2rpm(frpm[1])*SafetyThrottleEfficiency;
+	frpm[2]=f2rpm(frpm[2])*SafetyThrottleEfficiency;
+	frpm[3]=f2rpm(frpm[3])*SafetyThrottleEfficiency;
+	return frpm;
+}
+void 	ComputeControl_att_Eul(double * frpm,double *wd,double kq,double kw,double * X,double *M){
+	double Eul[3],qdot[4],q[4];
+	q[0]=X[3];
+	q[1]=X[4];
+	q[2]=X[5];
+	q[3]=X[6];
+
+
+
+
+
+		//compute the required moments
+	     qdot[0]=X[10];
+	     qdot[1]=X[11];
+	     qdot[2]=X[12];
+	     qdot[3]=X[13];
+
+	     double w[4],qinv[4],wdt[3],ew[3];
+	     	quat_prod(w,quat_inv(qinv,q),qdot);
+	     	//quat_rot(wdt,quat_inv(qinv,q),wd);
+	     	//quat_rot(wdt,eq,wd);
+
+	     	ew[0]=2*w[1];//-wdt[0];
+	     	ew[1]=2*w[2];//-wdt[1];
+	     	ew[2]=2*w[3];//-wdt[2];
+
+	Quat2Euler(Eul ,q);//z-x-y
+	double Mx,My,F;
+     My=-kq*Eul[1]-kq*ew[1];
+     Mx=-kq*Eul[2]-kq*ew[0];
+     cout<<"My = "<<My<<" Eul[1] = "<<Eul[1]<<"ew[1] = "<<ew[1] <<endl;
+     F=15;
+     //frpm[1]=F/2+Mx/(2*MomArm);
+     //frpm[3]=F/2-Mx/(2*MomArm);
+
+     M[0]=My;
+     frpm[0]=(F/2-My/(2*MomArm));
+     frpm[2]=(F/2+My/(2*MomArm));
+     frpm[1]=(0);
+     frpm[3]=(0);
+     //cout<<"Front = "<<frpm[0]<<" "<<"Left = " <<frpm[1]<<" " <<"Back = "<<frpm[2]<<" " <<"Right = "<<frpm[3]<<" " <<endl;
+}
+//
+int main(int argc , char** argv) {
+
+
+  double Draw[14],Dfilter[14],ViconTemp[7],AngRates[3],fpwm[4];
+ofstream DataRaw,DataFilter,ViconData;
+DataRaw.open ("Raw.txt");
+DataFilter.open ("Filtered.txt");
+ViconData.open ("ViconData.txt");
+char namebuf[500];
+
+
+
+
+
+  double kp=5;
+  double kd=4;
+  double kq=30;
+  double kw=3;
+  double Eul[3];
+  double q[4];
+  double M[1];
+
+cout<<"kq = ";
+cin>>kq;
+cout<<"kw = ";
+cin>>kw;
+cout<<endl;
+//double J11,J12,J13,J22,J23,J33;
+double frpm[4],xd[3],xd_d[3],b1d[3],qd[4],wd[4];
+
+// Specify desired trajectory
+xd[0]=0;
+xd[1]=0;
+xd[2]=2;
+
+xd_d[0]=0;
+xd_d[1]=0;
+xd_d[2]=0;
+//
+b1d[0]=1;
+b1d[1]=0;
+b1d[2]=0;
+
+
+qd[0]=1;
+qd[1]=0;
+qd[2]=0;
+qd[3]=0;
+
+wd[0]=0;
+wd[1]=0;
+wd[2]=0;
+
+//SPI
+//init_motor_spi_ss(FSS,LSS,BSS,RSS,rstpin);
+//usleep(1500000);
+
+
+//PWM
+PWMmotors PWMctrl;
+PWMctrl.set_max_min_force(0,25);
+PWMctrl.init_escs();
+
+/*
+while(1){
+cout<<"Front force = ";
+cin>>frpm[0];
+cout<<"Left force = ";
+cin>>frpm[1];
+cout<<"Back force = ";
+cin>>frpm[2];
+cout<<"Right force = ";
+cin>>frpm[3];
+PWMctrl.set_pwms(fpwm,frpm);
+}
+*/
+    SimpleTimer CtrlTimer;
+    CtrlTimer.SetTsec(0.005)	; //seconds for control update
+    CtrlTimer.ResetTimer(); //reset the timer
+
+    usleep(2000000);
+
+
+// set up vicon feedback
+    udpPort udp;
+    udpPort ForwardUdp;
+    sensorVicon Vi;
+    std::string data;
+	if(!Vi.init(argv[1]))
+		{
+			printf("Error Initialized Vicon receiver");
+			return false;
+		}
+
+	if(!udp.OpenPort(1360))
+		{
+			printf("Can not open udp port, no vicon data received \n");
+			return false;
+		}
+    printf("UDP Port Initiallize \n");
+
+
+
+
+
+    usleep(1000000);
+
+
+    XYZ_QUAT_Queue XYZQUAT;
+    data = udp.ReadPort();
+    Vi.update(data);
+    XYZQUAT.InitT0(Vi.getTn());
+    XYZQUAT.InitDataQueue();
+
+
+    snprintf(namebuf, sizeof(namebuf), "%s %s %s %s %s %s %s %s %s\n","T0","Tn","TrX","TrY","TrZ","TrQ1","TrQ2","TrQ3","TrQ4");
+    ViconData << namebuf;
+
+    snprintf(namebuf, sizeof(namebuf), "%s %s %s %s %s %s %s %s %s %s %s %s %s %s\n","DrawX","DrawY","DrawZ","DrawQ1","DrawQ2","DrawQ3","DrawQ4","DrawdX","DrawdY","DrawdZ","DrawdQ1","DrawdQ2","DrawdQ3","DrawdQ4");
+    DataRaw << namebuf;
+
+    snprintf(namebuf, sizeof(namebuf), "%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s\n","DfilX","DfilY","DfilZ","DfilQ1","DfilQ2","DfilQ3","DfilQ4","DfildX","DfildY","DfildZ","DfildQ1","DfildQ2","DfildQ3","DfildQ4","w1","w2","w3","fF","fL","fB","fR","Eul0","Eul1","Eul2","Fpwm","Lpwm","Bpwm","Rpwm","My");
+    DataFilter << namebuf;
+
+    while(1){
+
+// get measurement data
+   	printf("Reading \n");
+  	data = udp.ReadPort();
+    Vi.update(data);
+    XYZQUAT.UpdateXYZQUAT(Vi.getD(ViconTemp),Vi.getTn());
+
+    XYZQUAT.GetRawData(Draw);
+	XYZQUAT.GetFilterXYZQUAT(Dfilter);
+	ComputeAngRates(AngRates,Dfilter);
+	//ComputeControl(frpm,xd,xd_d,xd_d,xd_d,b1d,kp, kd,kq,kw,Dfilter);
+//	ComputeControl_att(frpm,qd,wd,kq,kw,Dfilter);
+    ComputeControl_att_Eul(frpm,wd,kq,kw,Dfilter,M);
+
+    //PWM
+    PWMctrl.set_pwms(fpwm,frpm);
+
+    //SPI
+    //transfer_rpmdata(frpm,FSS,LSS,BSS,RSS);
+
+
+
+	q[0]=Dfilter[3];
+	q[1]=Dfilter[4];
+	q[2]=Dfilter[5];
+	q[3]=Dfilter[6];
+	Quat2Euler(Eul ,q);//z-x-y
+
+	//cout<<q[0]<< " "<<q[1]<<" "<<q[2]<<" "<<q[3]<<endl;
+	//cout<<"Eul angs "<<Eul[0]*180/3.14<< " "<<Eul[1]*180/3.14<<" "<<Eul[2]*180/3.14<<endl;
+    //cout<< frpm[0]<< " "<< frpm[1]<< " "<< frpm[2]<< " "<< frpm[3]<< endl;
+	//cout<<"AngRates "<<AngRates[0]<< " "<<AngRates[1]<<" "<<AngRates[2]<<endl;
+
+
+
+
+	snprintf(namebuf, sizeof(namebuf), "%f %f %f %f %f %f %f %f %f\n",Vi.getT0(),Vi.getTn(),Vi.getx(),Vi.gety(),Vi.getz(),Vi.getq1(),Vi.getq2(),Vi.getq3(),Vi.getq4());
+    //printf("%f %f %f %f %f %f %f %f\n",Vi.getTn(),Vi.getx(),Vi.gety(),Vi.getz(),Vi.getq1(),Vi.getq2(),Vi.getq3(),Vi.getq4());
+	ViconData << namebuf;
+
+    snprintf(namebuf, sizeof(namebuf), "%f %f %f %f %f %f %f %f %f %f %f %f %f %f\n",Draw[0],Draw[1],Draw[2],Draw[3],Draw[4],Draw[5],Draw[6],Draw[7],Draw[8],Draw[9],Draw[10],Draw[11],Draw[12],Draw[13]);
+    DataRaw << namebuf;
+
+	snprintf(namebuf, sizeof(namebuf), "%f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f\n",Dfilter[0],Dfilter[1],Dfilter[2],Dfilter[3],Dfilter[4],Dfilter[5],Dfilter[6],Dfilter[7],Dfilter[8],Dfilter[9],Dfilter[10],Dfilter[11],Dfilter[12],Dfilter[13],AngRates[0],AngRates[1],AngRates[2],frpm[0],frpm[1],frpm[2],frpm[3],Eul[0],Eul[1],Eul[2],fpwm[0],fpwm[1],fpwm[2],fpwm[3],M);
+	DataFilter << namebuf;
+
+
+
+      while(CtrlTimer.CheckTimer()){}
+      CtrlTimer.ResetTimer();
+
+
+    }
+    //DataRaw.close();
+    //DataFilter.close();
+    //ViconData.close();
+	return 0;
+}

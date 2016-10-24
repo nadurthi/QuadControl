@@ -1,0 +1,14 @@
+
+**** Build of configuration Debug for project testimu ****
+
+make all 
+Building file: ../src/testimu.cpp
+Invoking: GCC C++ Compiler
+arm-linux-gnueabihf-g++ -I/usr/arm-linux-gnueabihf/include/c++/4.8.2 -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"src/testimu.d" -MT"src/testimu.d" -o"src/testimu.o" "../src/testimu.cpp"
+Finished building: ../src/testimu.cpp
+ 
+Building target: testimu
+Invoking: GCC C++ Linker
+arm-linux-gnueabihf-g++ -L/usr/arm-linux-gnueabihf/lib -o"testimu"  ./src/EKF.o ./src/I2Cdev.o ./src/MPU6050.o ./src/SerialcommGroundOnboard.o ./src/State_data_manager.o ./src/UDPcommGroundOnboard.o ./src/kinematic_estimators.o ./src/matrix_operations.o ./src/quaternion_operations.o ./src/serialib.o ./src/testimu.o ./src/udpPort.o   
+Finished building target: testimu
+ 

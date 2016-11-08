@@ -12,11 +12,19 @@ LIBS = -lboost_thread -lboost_system
 TARGET = test
 
 
-all: test
+all: test test2 test3
 
 test: test.cpp
 	$(CC) $(CFLAGS) -o test test.cpp $(LIBS)
 
+test2: test2.cpp
+	$(CC) $(CFLAGS) -o test2 test2.cpp $(LIBS)
+
+test3: test3.cpp
+	$(CC) $(CFLAGS) -o test3 test3.cpp $(LIBS)
+
 
 clean:
-	$(RM) $(TARGET)
+	$(RM) test
+	$(RM) test2
+	$(RM) test3

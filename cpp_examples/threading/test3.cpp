@@ -54,6 +54,25 @@ public:
     }
 };
 
+class BankAccount3 {
+    boost::mutex mtx_; // explicit mutex declaration 
+    int balance_;
+public:
+    int Deposit(int amount) {
+        boost::lock_guard<boost::mutex> guard(mtx_);
+        balance_ += amount;
+        return balance_;
+    }
+    int Withdraw(int amount) {
+        boost::lock_guard<boost::mutex> guard(mtx_);
+        balance_ -= amount;
+        return balance_;
+    }
+    int GetBalance() {
+        boost::lock_guard<boost::mutex> guard(mtx_);
+        return balance_;
+    }
+};
 
 BankAccount2 JoesAccount;
 

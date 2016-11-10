@@ -3,6 +3,52 @@
 #include <boost/chrono.hpp>
 #include <iostream>
 
+class BankAccount4 : public basic_lockable_adapter<mutex>
+{
+    int balance_;
+public:
+    int Deposit(int amount) {
+        boost::lock_guard<BankAccount> guard(*this);
+        balance_ += amount;
+        return balance_;
+    }
+    int Withdraw(int amount) {
+        boost::lock_guard<BankAccount> guard(*this);
+        balance_ -= amount;
+        return balance_;
+    }
+    int GetBalance() {
+        boost::lock_guard<BankAccount> guard(*this);
+        return balance_;
+    }
+};
+
+class BankAccount4 : public basic_lockable_adapter<recursive_mutex>
+{
+    int balance_;
+public:
+    int Deposit(int amount) {
+        boost::lock_guard<BankAccount> guard(*this);
+        balance_ += amount;
+        return balance_;
+    }
+    int Withdraw(int amount) {
+        boost::lock_guard<BankAccount> guard(*this);
+        balance_ -= amount;
+        return balance_;
+    }
+    int GetBalance() {
+        boost::lock_guard<BankAccount> guard(*this);
+        return balance_;
+    }
+};
+
+void ATMWithdrawal(BankAccount4 & acct, int sum) {
+    boost::lock_guard<BankAccount4> guard(acct);
+    acct.Withdraw(sum);
+    acct.Withdraw(2);
+}
+
 
 class BankAccount2 {
     boost::mutex mtx_;

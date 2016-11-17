@@ -9,22 +9,14 @@ CFLAGS  = -g -Wall
 LIBS = -lboost_thread -lboost_system
 
 # the build target executable:
-TARGET = test
+TARGET = oop
 
 
-all: test test2 test3
+all: oop
 
-test: test.cpp
-	$(CC) $(CFLAGS) -o test test.cpp $(LIBS)
-
-test2: test2.cpp
-	$(CC) $(CFLAGS) -std=c++0x -o test2 test2.cpp $(LIBS)
-
-test3: test3.cpp
-	$(CC) $(CFLAGS) -std=c++0x -o test3 test3.cpp $(LIBS)
+oop: oop.cpp
+	$(CC) $(CFLAGS) -std=c++11 -o oop oop.cpp $(LIBS)
 
 
 clean:
-	$(RM) test
-	$(RM) test2
-	$(RM) test3
+	$(RM) oop

@@ -215,12 +215,47 @@ void Fb3(BB & b){
 
 struct X{
 	X() {cout<<"a";}
-	X(const X &x){cout<<"a";}
+	X(const X &x){cout<<"b";}
 	const X& operator=(const X& x){
 		cout<<"c";
 		return *this;
 	}
 };
+// Template or function call first ????
+
+
+
+
+struct S
+{
+};
+
+
+
+template<typename T>
+void adl(T)
+{
+  cout << "T";
+}
+
+
+
+
+
+template<typename T>
+void call_adl(T t)
+{
+  adl(S());
+  adl(t);
+  adl(S());
+  adl(t);
+}
+
+void adl(S)
+{
+  cout << "S";
+}
+
 
 int main(){
 	vector<int> vec; 
@@ -344,6 +379,18 @@ int main(){
 	z=x;
 
 	cout<<endl<<"************Done Struct-----------------"<<endl<<endl;
+
+	std::vector<int> vv(5,3);
+	cout<<"vector array initialized "<<vv[3]<<endl;
+
+	std::vector<char> delimiters = { ',', ';' };  
+  	cout << delimiters[0]<<endl<<endl;
+
+  	call_adl(S());
+
+
+  	cout << endl<<endl;
+
 	return 0;
 
 }

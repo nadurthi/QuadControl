@@ -11,7 +11,6 @@ LIBS = -lboost_thread -lboost_system
 # the build target executable:
 TARGET = oop
 
-
 all: oop hacker1
 
 oop: oop.cpp
@@ -19,7 +18,6 @@ oop: oop.cpp
 
 hacker1: hacker1.cpp
 	$(CC) $(CFLAGS) -std=c++11 -o hacker1 hacker1.cpp $(LIBS)
-
 
 
 clean:

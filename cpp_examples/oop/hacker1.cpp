@@ -7,6 +7,13 @@
 
 using namespace std;
 
+class Somedata{
+public:
+	static int data;
+};
+int Somedata::data=10;
+
+Somedata objdata;
 
 int main() {
     /* Enter your code here. Read input from STDIN. Print output to STDOUT */ 
@@ -45,7 +52,28 @@ int main() {
     	cout<<"vector 2 iterator = "<<*it <<endl;
     }
 
+    int  q1,q2;
+    q1=10.0;
+    q2=3.0;
+    float q=q1/q2;
+    cout<<q1<<" "<<q2<<" "<<q<<endl;
 
+    enum Day {Mon=1,Tue=12};
+    enum Day var=Mon;
 
+    Somedata::data;
+    // objdata::data;
+    objdata.data;
+	int kk=0;
+    if (kk=2){
+    	cout<<"done deal"<<endl;
+    }
+    for(char idx=0;idx<20;idx++){
+    	cout<<"idx = "<<idx<<endl;
+    }
+    // int aaa{2.0};
+
+    int * arr=new int[10];
+    delete arr;
     return 0;
 }

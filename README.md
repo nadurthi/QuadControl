@@ -1,4 +1,4 @@
-# QuadControl
+# Quadcopter Controller
 C++ library for embedded control of quadrotor
 
 Please see the video of the controller code in action:

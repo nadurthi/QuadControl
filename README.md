@@ -19,6 +19,7 @@ Please see the video of the controller code in action:
   3. The onboard -sub motor controller that controls the speeds of the motors. 
 - The onboard controller does estimation (EKF using quaternions) and a geometric nonlinear controller.
 - All the code is implemented in c++
+- The matrix computations are done using the Eigen library
 - There is a Joystick control incuded in it too. You can instantaneously switch to automatic or manual control
 - the main sensor measurements and communications with onboard moter controller and ground station are all multi-threaded for parallel execution of estimation, filtering and control.
 - Onboard sensor measurements come from IMU at a higher rate for attitude stabilization and control

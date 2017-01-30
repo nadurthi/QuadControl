@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<session version="1.0">
-<refactoring comment="Rename resource &apos;System_ID_Data_logging/src/Motor_spi_comm.h&apos; to &apos;Motor_spi_comm_modf_datalog.h&apos;" description="Rename resource &apos;Motor_spi_comm.h&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="src/Motor_spi_comm.h" name="Motor_spi_comm_modf_datalog.h" stamp="1395028956696" updateReferences="true"/>
-</session>

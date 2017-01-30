@@ -23,3 +23,4 @@ Please see the video of the controller code in action:
 - the main sensor measurements and communications with onboard moter controller and ground station are all multi-threaded for parallel execution of estimation, filtering and control.
 - Onboard sensor measurements come from IMU at a higher rate for attitude stabilization and control
 - The motors are controlled using PWM using an ardruino(the onboard -sub motor controller).  The main onboard controller and this arduino sub controller communicate on SPI. There is also a self stabilization code within the ardunio code to automatically stabilize the quadcopter when it recieves no control actions from the main onboard controller.
+- The IMU communicates over I2C to the main onboard controller and the sub-motor controller(ardunio)

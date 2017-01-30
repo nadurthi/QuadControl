@@ -7,12 +7,6 @@
  * use, disclosure, and/or reproduction is prohibited unless
  * expressly authorized in writing.
  * All rights reserved.
- * @author mdiz
- * @version $Header$
- * FLAG REASON DATE WHO DESCRIPTION \n
- * ---- ---- ------- ------ -------- -------------------------------------\n
- * @bug 0001 Created Mar 23, 2012 mdiz File creation\n
- * @bug 0002 x42pro  Jun 06, 2013 mdiz Size change in data containers to use saitek x52 pro
  */
 
 #ifndef JOYSTICK_H_

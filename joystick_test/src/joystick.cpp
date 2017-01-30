@@ -7,11 +7,6 @@
  * use, disclosure, and/or reproduction is prohibited unless
  * expressly authorized in writing.
  * All rights reserved.
- * @author mdiz
- * @version $Header$
- * FLAG REASON DATE WHO DESCRIPTION \n
- * ---- ---- ------- ------ -------- -------------------------------------\n
- * @bug 0001 Created Mar 23, 2012 mdiz File creation\n
  */
 
 
